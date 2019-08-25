@@ -325,7 +325,7 @@ int vbuild_json(char* json, size_t buf_size, const char* item, va_list arg) {
 }
 
 #ifdef JSON_BUILDER_TEST
-// gcc -DJSON_BUILDER_TEST json_builder.c
+// gcc -DJSON_BUILDER_TEST src/json_builder.c; ./a.out;
 
 #include <assert.h>
 
@@ -373,6 +373,11 @@ int main() {
   len = json(buf64, "d[7", 4, 0.0, 0.01, 4.44, 1.2345678901234567890);
   printf("%s\n", buf64);
   assert(!strcmp(buf64, "[0,0.01,4.44,1.234568]"));
+  assert(len == strlen(buf64));
+
+  len = json(buf64, "d[h", 4, 0.0, 0.01, 4.44, 1.2345678901234567890);
+  printf("%s\n", buf64);
+  assert(!strcmp(buf64, "[0,0.01,4.4400000000000004,1.2345678901234567]"));
   assert(len == strlen(buf64));
 
   len = json(buf64, "b[", 2, 0, 1);
