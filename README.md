@@ -11,7 +11,8 @@ An easy-to-use, small, fast, and portable JSON builder for firmware logging and 
 
   char buf3[3], buf256[256], buf64[64], buf512[512];
   // key: value is a string
-  // i|key: value is an integer
+  // s|key: value is a string (can be used to escape prefix: e.g. "s|i|..." if you want your key to start with i|)
+  // i|key: value is an integer (32 bits)
   // d|*key: value is a floating number with 1 to 17 significant digits; argument should be a double
   // b|key: value is a boolean
   // o|key: value is anything else (object, array, null)
@@ -35,17 +36,17 @@ An easy-to-use, small, fast, and portable JSON builder for firmware logging and 
   json(buf64, "s[", 2, "str3", "str4\"inquote\"");
   // => ["str3","str4\"inquote\""]
 
-  // "i[": an integer array
-  json(buf64, "i[", 3, 0, 10, 20); 
-  // => [0,10,20]
+  // "i[": an integer (32 bits) array
+  json(buf64, "i[", 3, 0, -2147483648, 2147483647);
+  // => [0,-2147483648,2147483647]
 
   // "d[*": a floating number array with 1 to 17 significant digits (a is 10, b is 11 ... h is 17); arguments should be doubles
   json(buf64, "d[1", 4, 0.0, 0.01, 4.44, 1.2345678901234567890);
   // => [0,0.01,4,1]
   json(buf64, "d[7", 4, 0.0, 0.01, 4.44, 1.2345678901234567890);
   // => [0,0.01,4.44,1.234568]
-  json(buf64, "d[h", 4, 0.0, 0.01, 4.44, 1.2345678901234567890);
-  // => [0,0.01,4.4400000000000004,1.2345678901234567]
+  json(buf64, "d[h", 4, 0.0, 0.01, 4.44, -1.2345678901234567890);
+  // => [0,0.01,4.4400000000000004,-1.2345678901234567]
 
   // "b[": a boolean array
   json(buf64, "b[", 2, 0, 1); 
@@ -60,6 +61,7 @@ An easy-to-use, small, fast, and portable JSON builder for firmware logging and 
 
 Only a few C standard library functions
 ```c
+#include <inttypes.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
