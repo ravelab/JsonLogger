@@ -1,8 +1,4 @@
-#include "json_builder.h"
-
-#include <inttypes.h>
-#include <stdlib.h>
-#include <string.h>
+#include "JsonLogger.h"
 
 #define json_cat_safe(src, src_size)        \
   do {                                      \
@@ -60,14 +56,14 @@
     }                                             \
   } while (0)
 
-#define addStr(value)                                 \
-  do {                                                \
-    char* escaped = str_replace(value, "\"", "\\\""); \
-    char* source = escaped ? escaped : (char*)value;  \
-    json_cat_pointer(source);                         \
-    if (escaped) {                                    \
-      free(escaped);                                  \
-    }                                                 \
+#define addStr(value)                                        \
+  do {                                                       \
+    char* escaped = str_replace((char*)value, "\"", "\\\""); \
+    char* source = escaped ? escaped : (char*)value;         \
+    json_cat_pointer(source);                                \
+    if (escaped) {                                           \
+      free(escaped);                                         \
+    }                                                        \
   } while (0)
 
 enum ArrayType {
@@ -79,9 +75,9 @@ enum ArrayType {
   OTHER_ARRAY,
 };
 
-// Modified from https://stackoverflow.com/questions/779875/what-is-the-function-to-replace-string-in-c
+// inspired by https://stackoverflow.com/questions/779875/what-is-the-function-to-replace-string-in-c
 // You must free the result if result is non-NULL.
-static char* str_replace(const char* orig, char* rep, char* with) {
+char* str_replace(char* orig, char* rep, char* with) {
   char* result;   // the return string
   char* ins;      // the next insert point
   char* tmp;      // varies
@@ -89,6 +85,7 @@ static char* str_replace(const char* orig, char* rep, char* with) {
   int len_with;   // length of with (the string to replace rep with)
   int len_front;  // distance between rep and end of last rep
   int count;      // number of replacements
+  int first;
 
   // sanity checks and initialization
   if (!orig || !rep)
@@ -101,32 +98,52 @@ static char* str_replace(const char* orig, char* rep, char* with) {
   len_with = strlen(with);
 
   // count the number of replacements needed
-  ins = (char*)orig;
-  for (count = 0; (tmp = strstr(ins, rep)); ++count) {
-    ins = tmp + len_rep;
+  if (!(ins = strstr(orig, rep))) {
+    return NULL;  // no replacing needed
   }
 
-  if (!count)
-    return NULL;  // no replacing needed
+  int expand = len_with > len_rep;
 
-  tmp = result = malloc(strlen(orig) + (len_with - len_rep) * count + 1);
-
-  if (!result)
-    return NULL;
+  if (expand) {
+    char* moreIns = ins + len_rep;
+    for (count = 1; (tmp = strstr(moreIns, rep)); ++count) {
+      moreIns = tmp + len_rep;
+    }
+    tmp = result = malloc(strlen(orig) + (len_with - len_rep) * count + 1);
+    if (!result)
+      return NULL;
+  } else {  // inplace
+    tmp = ins;
+    result = NULL;
+    first = 1;
+  }
 
   // first time through the loop, all the variable are set correctly
   // from here on,
   //    tmp points to the end of the result string
   //    ins points to the next occurrence of rep in orig
   //    orig points to the remainder of orig after "end of rep"
-  while (count--) {
-    ins = strstr(orig, rep);
+  do {
     len_front = ins - orig;
-    tmp = strncpy(tmp, orig, len_front) + len_front;
-    tmp = strcpy(tmp, with) + len_with;
+    if (expand) {
+      tmp = memcpy(tmp, orig, len_front) + len_front;
+      tmp = memcpy(tmp, with, len_with) + len_with;
+    } else {
+      if (first) {
+        first = 0;
+      } else {
+        tmp = memmove(tmp, orig, len_front) + len_front;
+      }
+      tmp = memmove(tmp, with, len_with) + len_with;
+    }
     orig += len_front + len_rep;  // move to next "end of rep"
+  } while ((ins = strstr(orig, rep)));
+
+  if (expand) {
+    strcpy(tmp, orig);
+  } else {
+    memmove(tmp, orig, strlen(orig) + 1);
   }
-  strcpy(tmp, orig);
   return result;
 }
 
@@ -225,7 +242,7 @@ int vbuild_json(char* json, size_t buf_size, const char* item, va_list arg) {
         const char* value = va_arg(arg, const char*);
         if (!value) {
           value = item;
-          json_cat_array("\":\"");
+          json_cat_array(EMPTY_KEY "\":\"");
           itemIsValue = 1;
         } else {
           char* key = (char*)((item[1] == '|' && item[0] == 's') ? item + 2 : item);
@@ -313,13 +330,13 @@ int vbuild_json(char* json, size_t buf_size, const char* item, va_list arg) {
 }
 
 #ifdef JSON_BUILDER_TEST
-// gcc -DJSON_BUILDER_TEST src/json_builder.c; ./a.out;
+// gcc -Os -DLOG_TIME_VALUE="\"time\"" -DJSON_BUILDER_TEST src/*.c; ./a.out; rm ./a.out
 
 #include <assert.h>
 
 int main() {
   int len;
-  char buf3[3], buf256[256], buf64[64], buf512[512];
+  char buf3[3], buf256[256], buf64[64];
 
   len = json(buf256, "str_key1", "str1", "i|int_key1", 7, "d|3double_key1", 3.14159,
              "b|boolean_key1", 1, "o|object_key1", "{}", "o|array_key1", "[]", "o|null_key1", "null");
@@ -332,15 +349,17 @@ int main() {
   assert(!strcmp(buf64, "+|\"str_key2\":\"str2\",\"int_key2\":8"));
   assert(len == strlen(buf64));
 
-  len = json(buf512, "o|obj", buf256, buf64);
+  char* buf512 = (char*)malloc(512);
+  len = jsonHeap(buf512, 512, "o|obj", buf256, buf64);
   printf("%s\n", buf512);
   assert(!strcmp(buf512, "{\"obj\":{\"str_key1\":\"str1\",\"int_key1\":7,\"double_key1\":3.14,\"boolean_key1\":true,\"object_key1\":{},\"array_key1\":[],\"null_key1\":null},\"str_key2\":\"str2\",\"int_key2\":8}"));
   assert(len == strlen(buf512));
+  free(buf512);
 
-  len = json(buf512, "value only");
-  printf("%s\n", buf512);
-  assert(!strcmp(buf512, "{\"\":\"value only\"}"));
-  assert(len == strlen(buf512));
+  len = json(buf256, "value only");
+  printf("%s\n", buf256);
+  assert(!strcmp(buf256, "{\"_\":\"value only\"}"));
+  assert(len == strlen(buf256));
 
   len = json(buf64, "s[", 2, "str3", "str4\"inquote\"");
   printf("%s\n", buf64);
@@ -383,16 +402,16 @@ int main() {
   assert(!strcmp(buf3, "[]"));
   assert(len == strlen(buf3));
 
-  len = json(buf512, "s[", 2, buf64, buf3);
-  printf("%s\n", buf512);
-  assert(!strcmp(buf512, "[\"[[],{},null,40,5.55,false,\\\"str5\\\"]\",\"[]\"]"));
-  assert(len == strlen(buf512));
+  len = json(buf256, "s[", 2, buf64, buf3);
+  printf("%s\n", buf256);
+  assert(!strcmp(buf256, "[\"[[],{},null,40,5.55,false,\\\"str5\\\"]\",\"[]\"]"));
+  assert(len == strlen(buf256));
 
   // corner cases
 
   len = json(buf64, "");
   printf("%s\n", buf64);
-  assert(!strcmp(buf64, "{\"\":\"\"}"));
+  assert(!strcmp(buf64, "{\"_\":\"\"}"));
   assert(len == strlen(buf64));
 
   len = json(buf64, "a", "");
@@ -402,7 +421,7 @@ int main() {
 
   len = json(buf64, "x|");
   printf("%s\n", buf64);
-  assert(!strcmp(buf64, "{\"\":\"x|\"}"));
+  assert(!strcmp(buf64, "{\"_\":\"x|\"}"));
   assert(len == strlen(buf64));
 
   len = json(buf64, "x|", "value");
@@ -417,7 +436,7 @@ int main() {
 
   len = json(buf64, "x[");
   printf("%s\n", buf64);
-  assert(!strcmp(buf64, "{\"\":\"x[\"}"));
+  assert(!strcmp(buf64, "{\"_\":\"x[\"}"));
   assert(len == strlen(buf64));
 
   // error conditions
@@ -442,8 +461,9 @@ int main() {
   assert(!strcmp(buf64, "{\"\":0}"));
   assert(len == strlen(buf64));
 
-  len = json(buf64, "d|2");
-  printf("%s\n", buf64);  // gonna be random value converted from 64-bit number
+  // compile with -O2 gets segmentation fault 11
+  // len = json(buf64, "d|2");
+  // printf("%s\n", buf64);  // gonna be random value converted from 64-bit number
 
   len = json(buf64, "b|");
   printf("%s\n", buf64);
@@ -459,5 +479,7 @@ int main() {
   printf("%s\n", buf64);
   assert(!strcmp(buf64, "[null]"));
   assert(len == strlen(buf64));
+
+  return 0;
 }
 #endif

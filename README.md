@@ -1,11 +1,12 @@
-C JSON Builder
+JSON Logger
 ======
-An easy-to-use, small, fast, and portable JSON builder for firmware logging and communication.
+An easy-to-use, small, fast, and portable JSON builder and logger for IoT firmware data gathering.
 
 ### Usage:
 
+#### JSON Builder
 ```c
-#include <json_builder.h>
+#include <JsonLogger.h>
 ...
   // To build a json one level at a time, call json() and supply a char[] & key-value pairs as arguments:
 
@@ -56,6 +57,34 @@ An easy-to-use, small, fast, and portable JSON builder for firmware logging and 
   json(buf64, "o[", 7, "[]", "{}", "null", "40", "5.55", "false", "\"str5\""); 
   // => [[],{},null,40,5.55,false,"str5"]
 ```
+
+#### JSON Logger
+```c
+#include <JsonLogger.h>
+
+void to_console(int level, const char* json) {
+  if (level >= LEVEL_INFO) {
+    printf("%s\n", json);
+  }
+}
+
+void to_mqtt(int level, const char* json) {
+  if (level >= LEVEL_WARN) {
+    send(json);
+  }
+}
+
+...
+  log_add_sender(to_console);
+  log_add_sender(to_mqtt);
+
+  logDebug("debug stuff");
+  // =>
+  logInfo("i|status", 5, "string", "str", "info message");
+  // => {"t":"getTime()","l":"INFO","s":"src/logger.c:75","f":"main","status":5,"string":"str","_":"info message"}
+
+```
+
 
 ### Dependencies:
 
