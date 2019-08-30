@@ -77,7 +77,7 @@ enum ArrayType {
 
 // inspired by https://stackoverflow.com/questions/779875/what-is-the-function-to-replace-string-in-c
 // You must free the result if result is non-NULL.
-char* str_replace(char* orig, char* rep, char* with) {
+char* str_replace(char* orig, const char* rep, const char* with) {
   char* result;   // the return string
   char* ins;      // the next insert point
   char* tmp;      // varies
@@ -330,7 +330,7 @@ int vbuild_json(char* json, size_t buf_size, const char* item, va_list arg) {
 }
 
 #ifdef JSON_BUILDER_TEST
-// gcc -Os -DLOG_TIME_VALUE="\"time\"" -DJSON_BUILDER_TEST src/*.c; ./a.out; rm ./a.out
+// gcc -Os -DJSON_BUILDER_TEST src/*.c; ./a.out; rm ./a.out
 
 #include <assert.h>
 

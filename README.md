@@ -75,13 +75,15 @@ void to_mqtt(int level, const char* json) {
 }
 
 ...
-  log_add_sender(to_console);
-  log_add_sender(to_mqtt);
+  logAddSender(to_console);
+  logAddSender(to_mqtt);
 
-  logDebug("debug stuff");
-  // =>
-  logInfo("i|status", 5, "string", "str", "info message");
-  // => {"t":"getTime()","l":"INFO","s":"src/logger.c:75","f":"main","status":5,"string":"str","_":"info message"}
+  logTrace("should not be logged at all if LOG_MIN_LEVEL is not changed to 0");
+  logDebug("Debug");
+  logInfo("i|status", -1, "d|5pi", 3.14159, "Info");
+  logWarn("Warning");
+  logError("Error");
+  logFatal("Fatal");
 
 ```
 
