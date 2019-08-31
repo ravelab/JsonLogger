@@ -77,7 +77,7 @@ extern const char* LOG_LEVELS[];
 
 #define FILELINE __FILE__ ":" TOSTRING(__LINE__)
 
-#if _WIN32
+#ifdef POSSIBLE_BACKSLASH
 #define SOURCE strrchr("\\" FILELINE, '\\') + 1
 #else
 #define SOURCE FILELINE
