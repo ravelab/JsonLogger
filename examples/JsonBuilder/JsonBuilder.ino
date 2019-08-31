@@ -9,7 +9,7 @@ void setup() {
   char buf3[3], buf256[256], buf64[64], buf512[512];
   // key: value is a string
   // i|key: value is an integer
-  // d|*key: value is a floating number with 1 to 17 significant digits (a is 10, b is 11 ... h is 17).
+  // d|#key: value is a floating number with 1 to 17 significant digits (a is 10, b is 11 ... h is 17).
   // b|key: value is a boolean
   // o|key: value is anything else (object, array, null)
   int json_len = json(buf256, "str_key1", "str1", "i|int_key1", 7, "d|3double_key1", 3.14159,
@@ -45,7 +45,7 @@ void setup() {
   json(buf64, "i[", 3, 0, 10, 20);
   Serial.println(buf64);  // [0,10,20]
 
-  // "d[*": a floating number array with 1 to 17 significant digits (a is 10, b is 11 ... h is 17)
+  // "d[#": a floating number array with 1 to 17 significant digits (a is 10, b is 11 ... h is 17)
   json(buf64, "d[7", 4, 0.0, 0.01, 4.44, 1.2345678901234567890);
   Serial.println(buf64);  // [0,0.01,4.44,1.234568]
 

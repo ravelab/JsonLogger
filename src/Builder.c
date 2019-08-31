@@ -56,14 +56,44 @@
     }                                             \
   } while (0)
 
-#define addStr(value)                                        \
-  do {                                                       \
-    char* escaped = str_replace((char*)value, "\"", "\\\""); \
-    char* source = escaped ? escaped : (char*)value;         \
-    json_cat_pointer(source);                                \
-    if (escaped) {                                           \
-      free(escaped);                                         \
-    }                                                        \
+#define addStr(value)                                         \
+  do {                                                        \
+    char* escaped1 = str_replace((char*)value, "\\", "\\\\"); \
+    char* source1 = escaped1 ? escaped1 : (char*)value;       \
+    char* escaped2 = str_replace(source1, "\n", "\\n");       \
+    char* source2 = escaped2 ? escaped2 : source1;            \
+    char* escaped3 = str_replace(source2, "\"", "\\\"");      \
+    char* source3 = escaped3 ? escaped3 : source2;            \
+    char* escaped4 = str_replace(source3, "\b", "\\b");       \
+    char* source4 = escaped4 ? escaped4 : source3;            \
+    char* escaped5 = str_replace(source4, "\f", "\\f");       \
+    char* source5 = escaped5 ? escaped5 : source4;            \
+    char* escaped6 = str_replace(source5, "\r", "\\r");       \
+    char* source6 = escaped6 ? escaped6 : source5;            \
+    char* escaped7 = str_replace(source6, "\t", "\\t");       \
+    char* source7 = escaped7 ? escaped7 : source6;            \
+    json_cat_pointer(source7);                                \
+    if (escaped1) {                                           \
+      free(escaped1);                                         \
+    }                                                         \
+    if (escaped2) {                                           \
+      free(escaped2);                                         \
+    }                                                         \
+    if (escaped3) {                                           \
+      free(escaped3);                                         \
+    }                                                         \
+    if (escaped4) {                                           \
+      free(escaped4);                                         \
+    }                                                         \
+    if (escaped5) {                                           \
+      free(escaped5);                                         \
+    }                                                         \
+    if (escaped6) {                                           \
+      free(escaped6);                                         \
+    }                                                         \
+    if (escaped7) {                                           \
+      free(escaped7);                                         \
+    }                                                         \
   } while (0)
 
 enum ArrayType {
@@ -406,6 +436,11 @@ int main() {
   printf("%s\n", buf256);
   assert(!strcmp(buf256, "[\"[[],{},null,40,5.55,false,\\\"str5\\\"]\",\"[]\"]"));
   assert(len == strlen(buf256));
+
+  len = json(buf64, "\\\n\b\t\r\f\"");
+  printf("%s\n", buf64);
+  assert(!strcmp(buf64, "{\"_\":\"\\\\\\n\\b\\t\\r\\f\\\"\"}"));
+  assert(len == strlen(buf64));
 
   // corner cases
 
