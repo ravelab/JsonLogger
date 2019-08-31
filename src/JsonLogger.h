@@ -70,10 +70,18 @@ extern const char* LOG_LEVELS[];
 
 // stuff you shouldn't know
 #define logJson(level, ...) \
-  if (level >= LOG_MIN_LEVEL) log_json(level, "", "s", __FILE__ ":" TOSTRING(__LINE__), "f", __func__, __VA_ARGS__, NULL)
+  if (level >= LOG_MIN_LEVEL) log_json(level, "", "s", SOURCE, "f", __func__, __VA_ARGS__, NULL)
 
 #define STRINGIFY(x) #x
 #define TOSTRING(x) STRINGIFY(x)
+
+#define FILELINE __FILE__ ":" TOSTRING(__LINE__)
+
+#if _WIN32
+#define SOURCE strrchr("\\" FILELINE, '\\') + 1
+#else
+#define SOURCE FILELINE
+#endif
 
 #include <inttypes.h>
 #include <stdarg.h>

@@ -23,7 +23,7 @@ An easy-to-use, small, fast, and portable JSON builder and logger for IoT firmwa
 
   // if an argument has no matching pair, is not a fragment or part of an array, it will be a value to empty key
   json(buf512, "value only");
-  // => {"":"value only"}
+  // => {"_":"value only"}
 
   // "-{": build a fragment (starts with +|) that can be inserted into a json
   json(buf64, "-{", "str_key2", "str2", "i|int_key2", 8);
@@ -63,9 +63,12 @@ An easy-to-use, small, fast, and portable JSON builder and logger for IoT firmwa
 #include <JsonLogger.h>
 
 void to_console(int level, const char* json) {
-  if (level >= LEVEL_INFO) {
-    printf("%s\n", json);
-  }
+  char mod[LOG_MAX_LEN];
+  strcpy(mod, json);
+
+  logModifyForHuman(level, mod);
+
+  Serial.println(mod);
 }
 
 void to_mqtt(int level, const char* json) {

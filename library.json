@@ -1,0 +1,16 @@
+{
+  "name": "JsonLogger",
+  "version": "1.0.5",
+  "keywords": ["communication"],
+  "description": "An easy-to-use, small, fast, and portable JSON builder and logger for IoT firmware data gathering. Useful for logging json data to terminal, file, and cloud.",
+  "frameworks": "*",
+  "platforms": "*",
+  "authors": {
+    "email": "alanpc@gmail.com",
+    "name": "Alan Chen"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ravelab/JsonLogger"
+  }
+}
