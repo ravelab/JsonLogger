@@ -1,7 +1,6 @@
 #ifndef json_builder_h
 #define json_builder_h
 
-// stuff you should know
 #define json(buf, ...) build_json(buf, sizeof(buf), __VA_ARGS__, NULL)     // returns json length if all good, negative number if error
 #define jsonHeap(buf, size, ...) build_json(buf, size, __VA_ARGS__, NULL)  // same as json() but user supplies buffer size for malloc-ed buffer
 
@@ -17,14 +16,19 @@ extern "C" {
 #endif
 
 // define LOG_ID_KEY (e.g. -D LOG_ID_KEY="i") and implement getLogId() if you want to log id
+//#define LOG_ID_KEY "i"
 #ifdef LOG_ID_KEY
 extern const char* getLogId();
 #endif
 
-// define LOG_ID_KEY (e.g. -D LOG_TIME_KEY="t") and implement getLogTime() if you want to log id
+// define LOG_TIME_KEY (e.g. -D LOG_TIME_KEY="t") and implement getLogTime() if you want to log id
+//#define LOG_TIME_KEY "t"
 #ifdef LOG_TIME_KEY
 extern const char* getLogTime();
 #endif
+
+// define LOG_SOURCE_KEY (e.g. -D LOG_SOURCE_KEY="s") if you want to log source file, line # and function name
+//#define LOG_SOURCE_KEY "s"
 
 void logAddSender(void (*sender)(int level, const char* json));
 void logModifyForHuman(int level, char* json);
@@ -37,10 +41,6 @@ extern const char* LOG_LEVELS[];
 
 #define JSON_ERR_BUF_SIZE -1
 
-#ifndef EMPTY_KEY
-#define EMPTY_KEY "_"
-#endif
-
 #ifndef LOG_MIN_LEVEL
 #define LOG_MIN_LEVEL 1
 #endif
@@ -49,16 +49,16 @@ extern const char* LOG_LEVELS[];
 #define LOG_MAX_LEN 512
 #endif
 
-#ifndef LOG_LEVEL_KEY
-#define LOG_LEVEL_KEY "l"
-#endif
-
-#ifndef LOG_SOURCE_KEY
-#define LOG_SOURCE_KEY "s"
+#ifndef EMPTY_KEY
+#define EMPTY_KEY "_"
 #endif
 
 #ifndef LOG_FUNC_KEY
 #define LOG_FUNC_KEY "f"
+#endif
+
+#ifndef LOG_LEVEL_KEY
+#define LOG_LEVEL_KEY "l"
 #endif
 
 #define LEVEL_FATAL 5
@@ -68,9 +68,13 @@ extern const char* LOG_LEVELS[];
 #define LEVEL_DEBUG 1
 #define LEVEL_TRACE 0
 
-// stuff you shouldn't know
+#ifdef LOG_SOURCE_KEY
 #define logJson(level, ...) \
-  if (level >= LOG_MIN_LEVEL) log_json(level, "", "s", __FILE__ ":" TOSTRING(__LINE__), "f", __func__, __VA_ARGS__, NULL)
+  if (level >= LOG_MIN_LEVEL) log_json(level, "", LOG_SOURCE_KEY, __FILE__ ":" TOSTRING(__LINE__), LOG_FUNC_KEY, __func__, __VA_ARGS__, NULL)
+#else
+#define logJson(level, ...) \
+  if (level >= LOG_MIN_LEVEL) log_json(level, "", __VA_ARGS__, NULL)
+#endif
 
 #define STRINGIFY(x) #x
 #define TOSTRING(x) STRINGIFY(x)

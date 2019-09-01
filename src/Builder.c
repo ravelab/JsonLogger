@@ -206,7 +206,7 @@ int vbuild_json(char* json, size_t buf_size, const char* item, va_list arg) {
       case 'i':
         array = INT_ARRAY;
         break;
-      case 'd':
+      case 'f':
         array = DOUBLE_ARRAY;
         doubleArrayPrecisionChar = item[2];
         break;
@@ -256,7 +256,7 @@ int vbuild_json(char* json, size_t buf_size, const char* item, va_list arg) {
       if (item[1] == '|' && item[0] == 'i') {  // integer
         addKey(&item[2]);
         addInt();
-      } else if (item[1] == '|' && item[0] == 'd') {  // double
+      } else if (item[1] == '|' && item[0] == 'f') {  // double
         addKey(&item[3]);
         addDouble(item[2]);
       } else if (item[1] == '|' && item[0] == 'b') {  // boolean
@@ -368,7 +368,7 @@ int main() {
   int len;
   char buf3[3], buf256[256], buf64[64];
 
-  len = json(buf256, "str_key1", "str1", "i|int_key1", 7, "d|3double_key1", 3.14159,
+  len = json(buf256, "str_key1", "str1", "i|int_key1", 7, "f|3double_key1", 3.14159,
              "b|boolean_key1", 1, "o|object_key1", "{}", "o|array_key1", "[]", "o|null_key1", "null");
   printf("%s\n", buf256);
   assert(!strcmp(buf256, "{\"str_key1\":\"str1\",\"int_key1\":7,\"double_key1\":3.14,\"boolean_key1\":true,\"object_key1\":{},\"array_key1\":[],\"null_key1\":null}"));
@@ -401,18 +401,18 @@ int main() {
   assert(!strcmp(buf64, "[0,-2147483648,2147483647]"));
   assert(len == strlen(buf64));
 
-  len = json(buf64, "d[1", 4, 0.0, 0.01, 4.44, 1.2345678901234567890);
+  len = json(buf64, "f[1", 4, 0.0, 0.01, 4.44, 1.2345678901234567890);
   printf("%s\n", buf64);
   assert(!strcmp(buf64, "[0,0.01,4,1]"));
   assert(len == strlen(buf64));
 
-  // up to 17 significant number, the valid values for the * in "d[*" are 1 to h (a is 10, b is 11 ... h is 17)
-  len = json(buf64, "d[7", 4, 0.0, 0.01, 4.44, 1.2345678901234567890);
+  // up to 17 significant number, the valid values for the # in "f[#" are 1 to h (a is 10, b is 11 ... h is 17)
+  len = json(buf64, "f[7", 4, 0.0, 0.01, 4.44, 1.2345678901234567890);
   printf("%s\n", buf64);
   assert(!strcmp(buf64, "[0,0.01,4.44,1.234568]"));
   assert(len == strlen(buf64));
 
-  len = json(buf256, "d[h", 6, 0.0, 0.01, 4.44, -1.2345678901234567890, -0x1.fffffffffffffp+1023, -2.2250738585072014e-308);
+  len = json(buf256, "f[h", 6, 0.0, 0.01, 4.44, -1.2345678901234567890, -0x1.fffffffffffffp+1023, -2.2250738585072014e-308);
   printf("%s\n", buf256);
   assert(!strcmp(buf256, "[0,0.01,4.4400000000000004,-1.2345678901234567,-1.7976931348623157e+308,-2.2250738585072014e-308]"));
   assert(len == strlen(buf256));
@@ -497,7 +497,7 @@ int main() {
   assert(len == strlen(buf64));
 
   // compile with -O2 gets segmentation fault 11
-  // len = json(buf64, "d|2");
+  // len = json(buf64, "f|2");
   // printf("%s\n", buf64);  // gonna be random value converted from 64-bit number
 
   len = json(buf64, "b|");

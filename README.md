@@ -1,13 +1,13 @@
 JSON Logger
 ======
-An easy-to-use, small, fast, and portable JSON builder and logger for IoT firmware data gathering.
+An easy-to-use, small, fast and portable JSON builder and logger for IoT logging, data acquisition and analytics.
 
 ### Usage:
 
 Special prefixes to indicate data types: 
 ```javascript
-s| i| d|# b| o| 
-s[ i[ d[# b[ o[
+s| i| f|# b| o| 
+s[ i[ f[# b[ o[
 -{ +| 
 ``` 
 
@@ -22,11 +22,11 @@ s[ i[ d[# b[ o[
   // s|key: value is a string (can be used to escape prefix: 
   //        e.g. "s|i|..." if you want your key to start with i|)
   // i|key: value is an integer (32 bits)
-  // d|#key: value is a floating number with 1 to 17 significant 
+  // f|#key: value is a floating number with 1 to 17 significant 
   //         digits (a is 10, b is 11 ... h is 17).
   // b|key: value is a boolean
   // o|key: value is anything else (object, array, null)
-  json(buf256, "str_key1", "str1", "i|int_key1", 7, "d|3double_key1", 3.14159,
+  json(buf256, "str_key1", "str1", "i|int_key1", 7, "f|3double_key1", 3.14159,
     "b|boolean_key1", 1, "o|object_key1", "{}", "o|array_key1", "[]", "o|null_key1", "null");
   // => {"str_key1":"str1","int_key1":7,"double_key1":3.14,"boolean_key1":true,
   //     "object_key1":{},"array_key1":[],"null_key1":null}
@@ -53,13 +53,13 @@ s[ i[ d[# b[ o[
   json(buf64, "i[", 3, 0, -2147483648, 2147483647);
   // => [0,-2147483648,2147483647]
 
-  // "d[#": a floating number array with 1 to 17 significant 
+  // "f[#": a floating number array with 1 to 17 significant 
   //        digits (a is 10, b is 11 ... h is 17)
-  json(buf64, "d[1", 4, 0.0, 0.01, 4.44, 1.2345678901234567890);
+  json(buf64, "f[1", 4, 0.0, 0.01, 4.44, 1.2345678901234567890);
   // => [0,0.01,4,1]
-  json(buf64, "d[7", 4, 0.0, 0.01, 4.44, 1.2345678901234567890);
+  json(buf64, "f[7", 4, 0.0, 0.01, 4.44, 1.2345678901234567890);
   // => [0,0.01,4.44,1.234568]
-  json(buf64, "d[h", 4, 0.0, 0.01, 4.44, -1.2345678901234567890);
+  json(buf64, "f[h", 4, 0.0, 0.01, 4.44, -1.2345678901234567890);
   // => [0,0.01,4.4400000000000004,-1.2345678901234567]
 
   // "b[": a boolean array
@@ -76,7 +76,7 @@ s[ i[ d[# b[ o[
 #include <JsonLogger.h>
 
 void to_console(int level, const char* json) {
-  char mod[LOG_MAX_LEN];
+  char mof[LOG_MAX_LEN];
   strcpy(mod, json);
 
   logModifyForHuman(level, mod);
@@ -96,7 +96,7 @@ void to_mqtt(int level, const char* json) {
 
   logTrace("should not be logged at all if LOG_MIN_LEVEL is not changed to 0");
   logDebug("Debug");
-  logInfo("i|status", -1, "d|5pi", 3.14159, "Info");
+  logInfo("i|status", -1, "f|5pi", 3.14159, "Info");
   logWarn("Warning");
   logError("Error");
   logFatal("Fatal");

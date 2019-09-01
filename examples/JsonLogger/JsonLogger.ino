@@ -28,7 +28,7 @@ void setup() {
   Serial.println();
   logDebug("log to terminal, but not to file");
   Serial.println();
-  logInfo("i|status", -1, "d|5pi", 3.14159, "log to both terminal and file");
+  logInfo("i|status", -1, "f|5pi", 3.14159, "log to both terminal and file");
   Serial.println();
   logWarn("Warning");
   Serial.println();

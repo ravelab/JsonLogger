@@ -26,10 +26,12 @@ void logModifyForHuman(int level, char* mod) {
   str_replace(mod, buf, "");
 #endif
   str_replace(mod, "\",\"" LOG_LEVEL_KEY "\":", strlen(LOG_LEVELS[level]) == 5 ? "" : " ");
+#ifdef LOGO_SOURCE_KEY
   str_replace(mod, "\",\"" LOG_SOURCE_KEY "\":\"", " ");
   str_replace(mod, "\",\"" LOG_FUNC_KEY "\":\"", " ");
+#endif
+  str_replace(mod, "\\\"", "'");
   str_replace(mod, "\"", " ");
-  // mod[strlen(mod) - 1] = '\0';
 }
 
 void log_json(int level, const char* placeholder, ...) {
@@ -53,8 +55,11 @@ void log_json(int level, const char* placeholder, ...) {
 }
 
 #ifdef LOGGER_TEST
+
 // gcc -Os -DLOGGER_TEST '-DLOG_TIME_KEY="t"' src/*.c; ./a.out; rm ./a.out
 // gcc -Os -DLOGGER_TEST '-DLOG_ID_KEY="i"' src/*.c; ./a.out; rm ./a.out
+// gcc -Os -DLOGGER_TEST '-DLOG_SOURCE_KEY="s"' src/*.c; ./a.out; rm ./a.out
+// gcc -Os -DLOGGER_TEST src/*.c; ./a.out; rm ./a.out
 
 const char* getLogTime() {
   return "1970-01-01T00:00:00Z";
@@ -87,7 +92,7 @@ int main() {
   printf("\n");
   logDebug("log to terminal, but not to file");
   printf("\n");
-  logInfo("i|status", -1, "d|5pi", 3.14159, "log to both terminal and file");
+  logInfo("i|status", -1, "f|5pi", 3.14159, "log to both \"terminal\" and \"file\"");
   printf("\n");
   logWarn("Warning");
   printf("\n");
