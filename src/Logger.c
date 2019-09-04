@@ -21,13 +21,23 @@ void logModifyForHuman(int level, char* mod) {
 #else
   str_replace(mod, "\"" LOG_ID_KEY "\":", "");
 #endif
-  char buf[128];
+  char buf[64];
   sprintf(buf, "\"%s", getLogId());
   str_replace(mod, buf, "");
 #endif
-  str_replace(mod, "\",\"" LOG_LEVEL_KEY "\":", strlen(LOG_LEVELS[level]) == 5 ? "" : " ");
-#ifdef LOGO_SOURCE_KEY
-  str_replace(mod, "\",\"" LOG_SOURCE_KEY "\":\"", " ");
+
+  if (level < sizeof(LOG_LEVELS) / sizeof(LOG_LEVELS[0])) {
+    char buf[64];
+#if defined(LOG_TIME_KEY) || defined(LOG_ID_KEY)
+    sprintf(buf, ",\"" LOG_LEVEL_KEY "\":%d,", level);
+#else
+    sprintf(buf, "\"" LOG_LEVEL_KEY "\":%d,", level);
+#endif
+    str_replace(mod, buf, LOG_LEVELS[level]);
+  }
+
+#ifdef LOG_SOURCE_KEY
+  str_replace(mod, "\"" LOG_SOURCE_KEY "\":\"", " ");
   str_replace(mod, "\",\"" LOG_FUNC_KEY "\":\"", " ");
 #endif
   str_replace(mod, "\\\"", "'");
@@ -43,7 +53,7 @@ void log_json(int level, const char* placeholder, ...) {
 #ifdef LOG_ID_KEY
        LOG_ID_KEY, getLogId(),
 #endif
-       LOG_LEVEL_KEY, LOG_LEVELS[level]);
+       "i|" LOG_LEVEL_KEY, level);
   va_list args;
   va_start(args, placeholder);
   vbuild_json(json, LOG_MAX_LEN, fragment, args);
@@ -56,10 +66,11 @@ void log_json(int level, const char* placeholder, ...) {
 
 #ifdef LOGGER_TEST
 
+// gcc -Os -DLOGGER_TEST '-DLOG_ID_KEY="i"' '-DLOG_TIME_KEY="t"' '-DLOG_SOURCE_KEY="s"' src/*.c; ./a.out; rm ./a.out
 // gcc -Os -DLOGGER_TEST '-DLOG_TIME_KEY="t"' src/*.c; ./a.out; rm ./a.out
 // gcc -Os -DLOGGER_TEST '-DLOG_ID_KEY="i"' src/*.c; ./a.out; rm ./a.out
 // gcc -Os -DLOGGER_TEST '-DLOG_SOURCE_KEY="s"' src/*.c; ./a.out; rm ./a.out
-// gcc -Os -DLOGGER_TEST src/*.c; ./a.out; rm ./a.out
+// gcc -Os -DLOGGER_TEST '-DLOG_MIN_LEVEL=0' src/*.c; ./a.out; rm ./a.out
 
 const char* getLogTime() {
   return "1970-01-01T00:00:00Z";
@@ -99,6 +110,8 @@ int main() {
   logError("Error");
   printf("\n");
   logFatal("Fatal");
+  printf("\n");
+  logLevel(8, "DATA");
 
   return 0;
 }

@@ -10,6 +10,7 @@
 #define logInfo(...) logJson(LEVEL_INFO, __VA_ARGS__)
 #define logDebug(...) logJson(LEVEL_DEBUG, __VA_ARGS__)
 #define logTrace(...) logJson(LEVEL_TRACE, __VA_ARGS__)
+#define logLevel(level, ...) logJson(level, __VA_ARGS__)
 
 #ifdef __cplusplus
 extern "C" {
@@ -32,8 +33,6 @@ extern const char* getLogTime();
 
 void logAddSender(void (*sender)(int level, const char* json));
 void logModifyForHuman(int level, char* json);
-
-extern const char* LOG_LEVELS[];
 
 #ifdef __cplusplus
 }
