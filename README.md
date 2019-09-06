@@ -46,28 +46,33 @@ s[ i[ f[# b[ o[
   //     "object_key1":{},"array_key1":[],"null_key1":null},"str_key2":"str2","int_key2":8}
 
   // "s[": a string array, the next argument is the number of items
-  json(buf64, "s[", 2, "str3", "str4\"inquote\"");
+  char* strArray[] = {"str3", "str4\"inquote\""};
+  json(buf64, "s[", 2, strArray);
   // => ["str3","str4\"inquote\""]
 
   // "i[": an integer (32 bits) array
-  json(buf64, "i[", 3, 0, -2147483648, 2147483647);
+  int32_t intArray[] = {0, -2147483648, 2147483647};
+  json(buf64, "i[", 3, intArray);
   // => [0,-2147483648,2147483647]
 
   // "f[#": a floating number array with 1 to 17 significant 
   //        digits (a is 10, b is 11 ... h is 17)
-  json(buf64, "f[1", 4, 0.0, 0.01, 4.44, 1.2345678901234567890);
+  double floatArray[] = {0.0, 0.01, 4.44, 1.2345678901234567890};
+  json(buf64, "f[1", 4, floatArray);
   // => [0,0.01,4,1]
-  json(buf64, "f[7", 4, 0.0, 0.01, 4.44, 1.2345678901234567890);
+  json(buf64, "f[7", 4, floatArray);
   // => [0,0.01,4.44,1.234568]
-  json(buf64, "f[h", 4, 0.0, 0.01, 4.44, -1.2345678901234567890);
+  json(buf64, "f[h", 4, floatArray);
   // => [0,0.01,4.4400000000000004,-1.2345678901234567]
 
   // "b[": a boolean array
-  json(buf64, "b[", 2, 0, 1); 
+  int32_t boolArray[] = {0, 1};
+  json(buf64, "b[", 2, boolArray); 
   // => [false,true]
 
   // "o[": an array of mixed values
-  json(buf64, "o[", 7, "[]", "{}", "null", "40", "5.55", "false", "\"str5\""); 
+  char* otherArray[] = {"[]", "{}", "null", "40", "5.55", "false", "\"str5\""};
+  json(buf64, "o[", 7, otherArray); 
   // => [[],{},null,40,5.55,false,"str5"]
 ```
 
