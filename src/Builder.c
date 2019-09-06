@@ -18,16 +18,14 @@
     json_cat_array("\":"); \
   } while (0)
 
-#define addInt()                          \
-  do {                                    \
-    int32_t value = va_arg(arg, int32_t); \
-    sprintf(temp, "%" PRId32, value);     \
-    json_cat_pointer(temp);               \
+#define addInt(value)                 \
+  do {                                \
+    sprintf(temp, "%" PRId32, value); \
+    json_cat_pointer(temp);           \
   } while (0)
 
-#define addDouble(precisionChar)                                                            \
+#define addDouble(value, precisionChar)                                                     \
   do {                                                                                      \
-    double value = va_arg(arg, double);                                                     \
     uint8_t digits = precisionChar >= 'a' ? precisionChar - 'a' + 10 : precisionChar - '0'; \
     if (digits > 17) {                                                                      \
       digits = 17;                                                                          \
@@ -36,24 +34,22 @@
     json_cat_pointer(temp);                                                                 \
   } while (0)
 
-#define addBool()                         \
-  do {                                    \
-    int32_t value = va_arg(arg, int32_t); \
-    if (value) {                          \
-      json_cat_array("true");             \
-    } else {                              \
-      json_cat_array("false");            \
-    }                                     \
+#define addBool(value)         \
+  do {                         \
+    if (value) {               \
+      json_cat_array("true");  \
+    } else {                   \
+      json_cat_array("false"); \
+    }                          \
   } while (0)
 
-#define addOther()                                \
-  do {                                            \
-    const char* value = va_arg(arg, const char*); \
-    if (value) {                                  \
-      json_cat_pointer(value);                    \
-    } else {                                      \
-      json_cat_array("null");                     \
-    }                                             \
+#define addOther(value)        \
+  do {                         \
+    if (value) {               \
+      json_cat_pointer(value); \
+    } else {                   \
+      json_cat_array("null");  \
+    }                          \
   } while (0)
 
 #define addStr(value)                                         \
@@ -255,16 +251,20 @@ int vbuild_json(char* json, size_t buf_size, const char* item, va_list arg) {
       }
       if (item[1] == '|' && item[0] == 'i') {  // integer
         addKey(&item[2]);
-        addInt();
+        int32_t value = va_arg(arg, int32_t);
+        addInt(value);
       } else if (item[1] == '|' && item[0] == 'f') {  // double
         addKey(&item[3]);
-        addDouble(item[2]);
+        double value = va_arg(arg, double);
+        addDouble(value, item[2]);
       } else if (item[1] == '|' && item[0] == 'b') {  // boolean
         addKey(&item[2]);
-        addBool();
+        int32_t value = va_arg(arg, int32_t);
+        addBool(value);
       } else if (item[1] == '|' && item[0] == 'o') {  // others "{object}", "[array]", "null"
         addKey(&item[2]);
-        addOther();
+        const char* value = va_arg(arg, const char*);
+        addOther(value);
       } else if (item[1] == '|' && item[0] == '+') {  // insert fragment
         json_cat_pointer(&item[2]);
       } else {  // string
@@ -306,7 +306,33 @@ int vbuild_json(char* json, size_t buf_size, const char* item, va_list arg) {
       return 2;
     }
 
-    while (numOfArrayItems > 0) {
+    void** list;
+    switch (array) {
+      case INT_ARRAY: {
+        list = (void**)va_arg(arg, int32_t*);
+        break;
+      }
+      case DOUBLE_ARRAY: {
+        list = (void**)va_arg(arg, double*);
+        break;
+      }
+      case BOOL_ARRAY: {
+        list = (void**)va_arg(arg, int32_t*);
+        break;
+      }
+      case OTHER_ARRAY: {
+        list = (void**)va_arg(arg, const char**);
+        break;
+      }
+      case STRING_ARRAY: {
+        list = (void**)va_arg(arg, const char**);
+        break;
+      }
+      default:
+        break;
+    }
+
+    for (int32_t i = 0; i < numOfArrayItems; i++) {
       if (firstItem) {
         if (array == STRING_ARRAY) {
           json_cat_array("[\"");
@@ -324,30 +350,28 @@ int vbuild_json(char* json, size_t buf_size, const char* item, va_list arg) {
       }
       switch (array) {
         case INT_ARRAY: {
-          addInt();
+          addInt(((int32_t*)list)[i]);
           break;
         }
         case DOUBLE_ARRAY: {
-          addDouble(doubleArrayPrecisionChar);
+          addDouble(((double*)list)[i], doubleArrayPrecisionChar);
           break;
         }
         case BOOL_ARRAY: {
-          addBool();
+          addBool(((int32_t*)list)[i]);
           break;
         }
         case OTHER_ARRAY: {
-          addOther();
+          addOther(((const char**)list)[i]);
           break;
         }
         case STRING_ARRAY: {
-          const char* value = va_arg(arg, const char*);
-          addStr(value);
+          addStr(((const char**)list)[i]);
           break;
         }
         default:
           break;
       }
-      numOfArrayItems--;
     }
 
     if (arrayItemsNeedsQuote) {
@@ -391,38 +415,44 @@ int main() {
   assert(!strcmp(buf256, "{\"_\":\"value only\"}"));
   assert(len == strlen(buf256));
 
-  len = json(buf64, "s[", 2, "str3", "str4\"inquote\"");
+  char* strArray[] = {"str3", "str4\"inquote\""};
+  len = json(buf64, "s[", 2, strArray);
   printf("%s\n", buf64);
   assert(!strcmp(buf64, "[\"str3\",\"str4\\\"inquote\\\"\"]"));
   assert(len == strlen(buf64));
 
-  len = json(buf64, "i[", 3, 0, -2147483648, 2147483647);
+  int32_t intArray[] = {0, -2147483648, 2147483647};
+  len = json(buf64, "i[", 3, intArray);
   printf("%s\n", buf64);
   assert(!strcmp(buf64, "[0,-2147483648,2147483647]"));
   assert(len == strlen(buf64));
 
-  len = json(buf64, "f[1", 4, 0.0, 0.01, 4.44, 1.2345678901234567890);
+  double floatArray[] = {0.0, 0.01, 4.44, 1.2345678901234567890};
+  len = json(buf64, "f[1", 4, floatArray);
   printf("%s\n", buf64);
   assert(!strcmp(buf64, "[0,0.01,4,1]"));
   assert(len == strlen(buf64));
 
   // up to 17 significant number, the valid values for the # in "f[#" are 1 to h (a is 10, b is 11 ... h is 17)
-  len = json(buf64, "f[7", 4, 0.0, 0.01, 4.44, 1.2345678901234567890);
+  len = json(buf64, "f[7", 4, floatArray);
   printf("%s\n", buf64);
   assert(!strcmp(buf64, "[0,0.01,4.44,1.234568]"));
   assert(len == strlen(buf64));
 
-  len = json(buf256, "f[h", 6, 0.0, 0.01, 4.44, -1.2345678901234567890, -0x1.fffffffffffffp+1023, -2.2250738585072014e-308);
+  double floatArray2[] = {0.0, 0.01, 4.44, -1.2345678901234567890, -0x1.fffffffffffffp+1023, -2.2250738585072014e-308};
+  len = json(buf256, "f[h", 6, floatArray2);
   printf("%s\n", buf256);
   assert(!strcmp(buf256, "[0,0.01,4.4400000000000004,-1.2345678901234567,-1.7976931348623157e+308,-2.2250738585072014e-308]"));
   assert(len == strlen(buf256));
 
-  len = json(buf64, "b[", 2, 0, 1);
+  int32_t boolArray[] = {0, 1};
+  len = json(buf64, "b[", 2, boolArray);
   printf("%s\n", buf64);
   assert(!strcmp(buf64, "[false,true]"));
   assert(len == strlen(buf64));
 
-  len = json(buf64, "o[", 7, "[]", "{}", "null", "40", "5.55", "false", "\"str5\"");
+  char* otherArray[] = {"[]", "{}", "null", "40", "5.55", "false", "\"str5\""};
+  len = json(buf64, "o[", 7, otherArray);
   printf("%s\n", buf64);
   assert(!strcmp(buf64, "[[],{},null,40,5.55,false,\"str5\"]"));
   assert(len == strlen(buf64));
@@ -432,7 +462,9 @@ int main() {
   assert(!strcmp(buf3, "[]"));
   assert(len == strlen(buf3));
 
-  len = json(buf256, "s[", 2, buf64, buf3);
+  strArray[0] = buf64;
+  strArray[1] = buf3;
+  len = json(buf256, "s[", 2, strArray);
   printf("%s\n", buf256);
   assert(!strcmp(buf256, "[\"[[],{},null,40,5.55,false,\\\"str5\\\"]\",\"[]\"]"));
   assert(len == strlen(buf256));
@@ -486,34 +518,24 @@ int main() {
   printf("%s\n", buf64);
   assert(len == JSON_ERR_BUF_SIZE);
 
-  len = json(buf64, "b[", 2, 0, 1, 1);  // one additional parameter is ignored
-  printf("%s\n", buf64);
-  assert(!strcmp(buf64, "[false,true]"));
-  assert(len == strlen(buf64));
-
-  len = json(buf64, "i|");
-  printf("%s\n", buf64);
-  assert(!strcmp(buf64, "{\"\":0}"));
-  assert(len == strlen(buf64));
+  // len = json(buf64, "i|");
+  // printf("%s\n", buf64);
+  // assert(!strcmp(buf64, "{\"\":0}"));
+  // assert(len == strlen(buf64));
 
   // compile with -O2 gets segmentation fault 11
   // len = json(buf64, "f|2");
   // printf("%s\n", buf64);  // gonna be random value converted from 64-bit number
 
-  len = json(buf64, "b|");
-  printf("%s\n", buf64);
-  assert(!strcmp(buf64, "{\"\":false}"));
-  assert(len == strlen(buf64));
+  // len = json(buf64, "b|");
+  // printf("%s\n", buf64);
+  // assert(!strcmp(buf64, "{\"\":false}"));
+  // assert(len == strlen(buf64));
 
-  len = json(buf64, "o|");
-  printf("%s\n", buf64);
-  assert(!strcmp(buf64, "{\"\":null}"));
-  assert(len == strlen(buf64));
-
-  len = json(buf64, "o[", 1);
-  printf("%s\n", buf64);
-  assert(!strcmp(buf64, "[null]"));
-  assert(len == strlen(buf64));
+  // len = json(buf64, "o|");
+  // printf("%s\n", buf64);
+  // assert(!strcmp(buf64, "{\"\":null}"));
+  // assert(len == strlen(buf64));
 
   return 0;
 }
