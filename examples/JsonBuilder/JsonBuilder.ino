@@ -6,61 +6,57 @@ void setup() {
     ;  // wait for serial port to connect. Needed for native USB port only
   }
 
-  char buf3[3], buf256[256], buf64[64], buf512[512];
+  // To build a json, call json() with a char* buffer, prefixed keys and values:
+  char buf256[256], buf128[128], buf64[64];
   // key: value is a string
-  // i|key: value is an integer
-  // f|#key: value is a floating number with 1 to 17 significant digits (a is 10, b is 11 ... h is 17).
+  // i|key: value is an integer (32 bits)
+  // f#|key: a floating number with 1 to 17 significant digits (a is 10 ... h is 17).
   // b|key: value is a boolean
   // o|key: value is anything else (object, array, null)
-  int json_len = json(buf256, "str_key1", "str1", "i|int_key1", 7, "f|3double_key1", 3.14159,
-                      "b|boolean_key1", 1, "o|object_key1", "{}", "o|array_key1", "[]", "o|null_key1", "null");
-  Serial.println(String(buf256) + " length: " + json_len);
-  // {"str_key1":"str1","int_key1":7,"double_key1":3.14,"boolean_key1":true,
-  //  "object_key1":{},"array_key1":[],"null_key1":null} length: 121
-
-  // return value: length of the json string
-  json_len = json(buf3, "k", "v");  // need buffer size to be 10 to hold {"k":"v"}
-  Serial.println(String(buf3) + " length: " + json_len);
-
-  // If an argument has no matching pair and is not a fragment or part of an array,
-  // it will be a value for _ key
-  json(buf512, "value only");
-  Serial.println(buf512);  // {"_":"value only"}
+  // {|key: object begins
+  // }|: object ends
+  // If the last parameter has no matching pair, it will be a value to "_" key
+  int len = json(buf256, "StrK", "StrV", "{|ObjK", "i|IntK", 0xffffffff, "f7|FloatK", 1.234567890,
+                 "}|", "b|BoolK", 1, "o|NullK", "null", "ValueOnly");
+  Serial.println(String(buf256) + " len=" + len);
+  // => {"StrK":"StrV","ObjK":{"IntK":-1,"FloatK":1.234568},"BoolK":true,"NullK":null,"_":"ValueOnly"}
 
   // "-{": build a fragment (starts with +|) that can be inserted into a json
-  json(buf64, "-{", "str_key2", "str2", "i|int_key2", 8);
-  Serial.println(buf64);  // +|"str_key2":"str2","int_key2":8
+  // s|key: value is a string (can be used to escape prefix:
+  //        e.g. "s|i|..." if you want your key to start with i|)
+  json(buf64, "-{", "s|i|StrK2", "StrV2", "i|IntK2", 8);
+  Serial.println(buf64);
+  // => +|"i|StrK2":"StrV2","IntK2":8
 
-  // build a json with an object json and a fragment
-  json(buf512, "o|obj", buf256, buf64);
+  // build a json on heap with a json and a fragment:
+  char* buf512 = (char*)malloc(512);
+  jsonHeap(buf512, 512, "o|ObjK2", buf256, buf64);
   Serial.println(buf512);
-  // {"obj":{"str_key1":"str1","int_key1":7,"double_key1":3.14,"boolean_key1":true,
-  //  "object_key1":{},"array_key1":[],"null_key1":null},"str_key2":"str2","int_key2":8}
+  // => {"ObjK2":{"StrK":"StrV","ObjK":{"IntK":-1,"FloatK":1.234568},"BoolK":true,"NullK":null,
+  //     "_":"ValueOnly"},"i|StrK2":"StrV2","IntK2":8}
+  free(buf512);
 
-  // "s[": a string array, the next argument is the number of items
-  char* strArray[] = {"str3", "str4\"inquote\""};
-  json(buf64, "s[", 2, strArray);
-  Serial.println(buf64);  // ["str3","str4\"inquote\""]
-
-  // "i[": an integer array
+  // "s[key": a string array
+  char* strArray[] = {"StrV3", "Str\"V4\""};
+  // "i[key": an integer (32 bits) array
   int32_t intArray[] = {0, -2147483648, 2147483647};
-  json(buf64, "i[", 3, intArray);
-  Serial.println(buf64);  // [0,-2147483648,2147483647]
-
-  // "f[#": a floating number array with 1 to 17 significant digits (a is 10, b is 11 ... h is 17)
-  double floatArray[] = {0.0, 0.01, 4.44, 1.2345678901234567890};
-  json(buf64, "f[7", 4, floatArray);
-  Serial.println(buf64);  // [0,0.01,4.44,1.234568]
-
-  // "b[": a boolean array
+  // "f#[key": a floating number array with 1 to 17 significant digits (a is 10 ... h is 17)
+  double floatArray[] = {-0x1.fffffffffffffp+1023, -2.2250738585072014e-308};
+  // "b[key": a boolean array
   int32_t boolArray[] = {0, 1};
-  json(buf64, "b[", 2, boolArray);
-  Serial.println(buf64);  // [false,true]
 
-  // "o[": an array of mixed values
-  char* otherArray[] = {"[]", "{}", "null", "40", "5.55", "false", "\"str5\""};
-  json(buf64, "o[", 7, otherArray);
-  Serial.println(buf64);  // [[],{},null,40,5.55,false,"str5"]
+  json(buf256, "s[StrArrayK", 2, strArray, "i[IntArrayK", 3, intArray,
+       "fh[FloatArrayK", 2, floatArray, "b[BoolArrayK", 2, boolArray);
+  Serial.println(buf256);
+  // => {"StrArrayK":["StrV3","Str\"V4\""],"IntArrayK":[0,-2147483648,2147483647],
+  //     "FloatArrayK":[-1.7976931348623157e+308,-2.2250738585072014e-308],"BoolArrayK":[false,true]}
+
+  // "o[key": an array of mixed values
+  // When the key of an array is empty, it is not enclosed by an object:
+  char* otherArray[] = {"\"NoKeyArray\"", "[]", "{}", "null", "40", "5.55", "false"};
+  json(buf128, "o[", 7, otherArray);
+  Serial.println(buf128);
+  // => ["NoKeyArray",[],{},null,40,5.55,false]
 }
 
 void loop() {

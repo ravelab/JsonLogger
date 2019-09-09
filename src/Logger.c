@@ -103,7 +103,7 @@ int main() {
   printf("\n");
   logDebug("log to terminal, but not to file");
   printf("\n");
-  logInfo("i|status", -1, "f|5pi", 3.14159, "log to both \"terminal\" and \"file\"");
+  logInfo("i|status", -1, "f5|pi", 3.14159, "log to both \"terminal\" and \"file\"");
   printf("\n");
   logWarn("Warning");
   printf("\n");

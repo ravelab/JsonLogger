@@ -39,6 +39,7 @@ void logModifyForHuman(int level, char* json);
 #endif
 
 #define JSON_ERR_BUF_SIZE -1
+#define JSON_ERR_BRACES_MISMATCH -2
 
 #ifndef LOG_MIN_LEVEL
 #define LOG_MIN_LEVEL 1
