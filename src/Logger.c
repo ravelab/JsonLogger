@@ -45,7 +45,7 @@ void logModifyForHuman(int level, char* mod) {
 }
 
 void log_json(int level, const char* placeholder, ...) {
-  char fragment[LOG_MAX_LEN], json[LOG_MAX_LEN];
+  char fragment[64], json[LOG_MAX_LEN];
   json(fragment, "-{",
 #ifdef LOG_TIME_KEY
        LOG_TIME_KEY, getLogTime(),
@@ -56,10 +56,15 @@ void log_json(int level, const char* placeholder, ...) {
        "i|" LOG_LEVEL_KEY, level);
   va_list args;
   va_start(args, placeholder);
-  vbuild_json(json, LOG_MAX_LEN, fragment, args);
+  int len = vbuild_json(json, LOG_MAX_LEN, fragment, args);
   va_end(args);
 
   for (int i = 0; i < number_of_senders; i++) {
+    if (len < 0) {
+      char error[64];
+      json(error, "i|len", len, "vbuild_json() failed in log_json()");
+      senders[i](LEVEL_ERROR, error);
+    }
     senders[i](level, json);
   }
 }

@@ -24,7 +24,7 @@ s[ i[ f#[ b[ o[
   // o|key: value is anything else (object, array, null)
   // {|key: object begins
   // }|: object ends
-  // If the last parameter has no matching pair, it will be a value to "_" key
+  // If the last parameter has no matching pair, it will be a value to "_" key.
   int len = json(buf256, "StrK", "StrV", "{|ObjK", "i|IntK", 0xffffffff, "f7|FloatK", 1.234567890,
                  "}|", "b|BoolK", 1, "o|NullK", "null", "ValueOnly");
   // => {"StrK":"StrV","ObjK":{"IntK":-1,"FloatK":1.234568},"BoolK":true,"NullK":null,"_":"ValueOnly"}

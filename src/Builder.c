@@ -187,24 +187,28 @@ int vbuild_json(char* json, size_t buf_size, const char* item, va_list arg) {
   char temp[25];  // enough for int, double conversion
   json[0] = '\0';
   int json_len = 0;
-  int8_t fragment = 0;
+  int8_t buildFragment = 0;
   int8_t firstItem = 1;
   int8_t lastValueNeedsQuote = 0;
   int8_t isNoKeyArray = 0;
   int braceDiff = 0;
 
   if (item[0] == '-' && item[1] == '{') {
-    fragment = 1;
+    buildFragment = 1;
     item = va_arg(arg, const char*);
   }
 
   while (item) {
-    int8_t isKey = !(item[0] == '+' && item[1] == '|');
+    int8_t isFragment = (item[0] == '+' && item[1] == '|');
+    if (isFragment && item[2] == '\0') {
+      item = va_arg(arg, const char*);
+      continue;
+    }
     int8_t isEndObject = (item[0] == '}' && item[1] == '|');
     int8_t isArray = (item[1] == '[' && (item[0] == 'i' || item[0] == 'b' || item[0] == 'o' || item[0] == 's')) ||
                      (item[2] == '[' && item[0] == 'f');
     enum ArrayType array = STRING_ARRAY;
-    const char* arrayKey;
+    const char* arrayKey = &item[2];
     if (isArray) {
       switch (item[0]) {
         case 'i':
@@ -212,6 +216,7 @@ int vbuild_json(char* json, size_t buf_size, const char* item, va_list arg) {
           break;
         case 'f':
           array = DOUBLE_ARRAY;
+          arrayKey = &item[3];
           break;
         case 'b':
           array = BOOL_ARRAY;
@@ -221,21 +226,18 @@ int vbuild_json(char* json, size_t buf_size, const char* item, va_list arg) {
           break;
       }
 
-      arrayKey = (array == DOUBLE_ARRAY) ? &item[3] : &item[2];
       if (*arrayKey == '\0') {
         isNoKeyArray = 1;
       }
     }
 
     if (firstItem) {
-      if (isKey) {
-        if (fragment) {
+      if (!isFragment) {
+        if (buildFragment) {
           concat_const("+|\"");
         } else if (!isNoKeyArray) {
           concat_const("{\"");
         }
-      } else if (!isNoKeyArray) {
-        concat_const("{");
       }
       firstItem = 0;
     } else if (!isEndObject) {
@@ -243,10 +245,12 @@ int vbuild_json(char* json, size_t buf_size, const char* item, va_list arg) {
         concat_const("\",\"");
         lastValueNeedsQuote = 0;
       } else {
-        if (isKey) {
-          concat_const(",\"");
+        if (isFragment) {
+          if (item[2] != '\0') {
+            concat_const(",");
+          }
         } else {
-          concat_const(",");
+          concat_const(",\"");
         }
       }
     }
@@ -277,7 +281,7 @@ int vbuild_json(char* json, size_t buf_size, const char* item, va_list arg) {
         concat_const("}");
       }
       braceDiff -= 1;
-    } else if (item[1] == '|' && item[0] == '+') {  // insert fragment
+    } else if (isFragment) {  // insert fragment
       concat_var(&item[2]);
     } else if (isArray) {
       if (!isNoKeyArray) {
@@ -376,7 +380,7 @@ int vbuild_json(char* json, size_t buf_size, const char* item, va_list arg) {
     item = va_arg(arg, const char*);
   }
 
-  if (fragment) {
+  if (buildFragment) {
     if (lastValueNeedsQuote) {
       concat_const("\"");
     }
@@ -422,6 +426,14 @@ int main() {
                  "{\"ObjK2\":{\"StrK\":\"StrV\",\"ObjK\":{\"IntK\":-1,\"FloatK\":1.234568},\
 \"BoolK\":true,\"NullK\":null,\"_\":\"ValueOnly\"},\"i|StrK2\":\"StrV2\",\"IntK2\":8}"));
   assert(len == strlen(buf512));
+
+  len = jsonHeap(buf512, 512, "+|", "o|ObjK2", buf256, "+|");
+  printf("%s\n", buf512);
+  assert(!strcmp(buf512,
+                 "{\"ObjK2\":{\"StrK\":\"StrV\",\"ObjK\":{\"IntK\":-1,\"FloatK\":1.234568},\
+\"BoolK\":true,\"NullK\":null,\"_\":\"ValueOnly\"}}"));
+  assert(len == strlen(buf512));
+
   free(buf512);
 
   char* strArray[] = {"StrV3", "Str\"V4\""};
@@ -480,6 +492,16 @@ int main() {
   assert(!strcmp(buf64, "{\"_\":\"x[\"}"));
   assert(len == strlen(buf64));
 
+  // len = json(buf64, "{|key", "+|", "}|");
+  // printf("%s\n", buf64);
+  // assert(!strcmp(buf64, "{\"key\":{}}"));
+  // assert(len == strlen(buf64));
+
+  // len = json(buf64, "+|");
+  // printf("%s\n", buf64);
+  // assert(!strcmp(buf64, "{}"));
+  // assert(len == strlen(buf64));
+
   // error conditions
   len = json(NULL, "k", "v");
   assert(len == JSON_ERR_BUF_SIZE);
@@ -495,25 +517,6 @@ int main() {
   len = json(buf64, "{|ObjK1", "{|ObjK2", "}|");
   printf("%s\n", buf64);
   assert(len == JSON_ERR_BRACES_MISMATCH);
-
-  // len = json(buf64, "i|");
-  // printf("%s\n", buf64);
-  // assert(!strcmp(buf64, "{\"\":0}"));
-  // assert(len == strlen(buf64));
-
-  // compile with -O2 gets segmentation fault 11
-  // len = json(buf64, "f|2");
-  // printf("%s\n", buf64);  // gonna be random value converted from 64-bit number
-
-  // len = json(buf64, "b|");
-  // printf("%s\n", buf64);
-  // assert(!strcmp(buf64, "{\"\":false}"));
-  // assert(len == strlen(buf64));
-
-  // len = json(buf64, "o|");
-  // printf("%s\n", buf64);
-  // assert(!strcmp(buf64, "{\"\":null}"));
-  // assert(len == strlen(buf64));
 
   return 0;
 }
