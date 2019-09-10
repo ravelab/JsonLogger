@@ -232,7 +232,9 @@ int vbuild_json(char* json, size_t buf_size, const char* item, va_list arg) {
     }
 
     if (firstItem) {
-      if (!isFragment) {
+      if (isFragment) {
+        concat_const("{");
+      } else {
         if (buildFragment) {
           concat_const("+|\"");
         } else if (!isNoKeyArray) {
@@ -277,6 +279,7 @@ int vbuild_json(char* json, size_t buf_size, const char* item, va_list arg) {
     } else if (isEndObject) {  // end object
       if (lastValueNeedsQuote) {
         concat_const("\"}");
+        lastValueNeedsQuote = 0;
       } else {
         concat_const("}");
       }
