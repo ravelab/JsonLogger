@@ -195,6 +195,7 @@ int vbuild_json(char* json, size_t buf_size, const char* item, va_list arg) {
 
   if (item[0] == '-' && item[1] == '{') {
     buildFragment = 1;
+    concat_const("+|");
     item = va_arg(arg, const char*);
   }
 
@@ -232,11 +233,11 @@ int vbuild_json(char* json, size_t buf_size, const char* item, va_list arg) {
     }
 
     if (firstItem) {
-      if (isFragment) {
+      if (isFragment || isEndObject) {
         concat_const("{");
       } else {
         if (buildFragment) {
-          concat_const("+|\"");
+          concat_const("\"");
         } else if (!isNoKeyArray) {
           concat_const("{\"");
         }
@@ -277,6 +278,9 @@ int vbuild_json(char* json, size_t buf_size, const char* item, va_list arg) {
       firstItem = 1;
       braceDiff += 1;
     } else if (isEndObject) {  // end object
+      if (braceDiff < 1) {
+        return JSON_ERR_BRACES_MISMATCH;
+      }
       if (lastValueNeedsQuote) {
         concat_const("\"}");
         lastValueNeedsQuote = 0;
@@ -318,7 +322,7 @@ int vbuild_json(char* json, size_t buf_size, const char* item, va_list arg) {
       }
 
       int8_t arrayItemsNeedsQuote = 0;
-      if (array == STRING_ARRAY) {
+      if (array == STRING_ARRAY && numOfArrayItems > 0) {
         concat_const("[\"");
         arrayItemsNeedsQuote = 1;
       } else {
@@ -452,6 +456,14 @@ int main() {
 \"FloatArrayK\":[-1.7976931348623157e+308,-2.2250738585072014e-308],\"BoolArrayK\":[false,true]}"));
   assert(len == strlen(buf256));
 
+  len = json(buf256, "s[StrArrayK", 0, NULL, "i[IntArrayK", 0, NULL,
+             "fh[FloatArrayK", 0, NULL, "b[BoolArrayK", 0, NULL);
+  printf("%s\n", buf256);
+  assert(!strcmp(buf256,
+                 "{\"StrArrayK\":[],\"IntArrayK\":[],\
+\"FloatArrayK\":[],\"BoolArrayK\":[]}"));
+  assert(len == strlen(buf256));
+
   char* otherArray[] = {"\"NoKeyArray\"", "[]", "{}", "null", "40", "5.55", "false"};
   len = json(buf128, "o[", 7, otherArray);
   printf("%s\n", buf128);
@@ -461,6 +473,11 @@ int main() {
   len = json(buf64, "\\\n\b\t\r\f\"");
   printf("%s\n", buf64);
   assert(!strcmp(buf64, "{\"_\":\"\\\\\\n\\b\\t\\r\\f\\\"\"}"));
+  assert(len == strlen(buf64));
+
+  len = json(buf64, "-{");
+  printf("%s\n", buf64);
+  assert(!strcmp(buf64, "+|"));
   assert(len == strlen(buf64));
 
   // corner cases
@@ -495,15 +512,10 @@ int main() {
   assert(!strcmp(buf64, "{\"_\":\"x[\"}"));
   assert(len == strlen(buf64));
 
-  // len = json(buf64, "{|key", "+|", "}|");
-  // printf("%s\n", buf64);
-  // assert(!strcmp(buf64, "{\"key\":{}}"));
-  // assert(len == strlen(buf64));
-
-  // len = json(buf64, "+|");
-  // printf("%s\n", buf64);
-  // assert(!strcmp(buf64, "{}"));
-  // assert(len == strlen(buf64));
+  len = json(buf64, "{|key", "+|", "}|");
+  printf("%s\n", buf64);
+  assert(!strcmp(buf64, "{\"key\":{}}"));
+  assert(len == strlen(buf64));
 
   // error conditions
   len = json(NULL, "k", "v");
@@ -518,6 +530,10 @@ int main() {
   assert(len == JSON_ERR_BUF_SIZE);
 
   len = json(buf64, "{|ObjK1", "{|ObjK2", "}|");
+  printf("%s\n", buf64);
+  assert(len == JSON_ERR_BRACES_MISMATCH);
+
+  len = json(buf64, "}|", "{|ObjK2");
   printf("%s\n", buf64);
   assert(len == JSON_ERR_BRACES_MISMATCH);
 
