@@ -1,15 +1,15 @@
 #include <JsonLogger.h>
 
-void send_console(int level, const char* json) {
+void send_console(int level, const char* json, int len) {
   char mod[LOG_MAX_LEN];
-  strcpy(mod, json);
+  memcpy(mod, json, len + 1);
 
   logModifyForHuman(level, mod);
 
   Serial.println(mod);
 }
 
-void send_file(int level, const char* json) {
+void send_file(int level, const char* json, int len) {
   if (level >= LEVEL_INFO) {
     Serial.println(json);
   }

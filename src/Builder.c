@@ -164,10 +164,11 @@ char* str_replace(char* orig, const char* rep, const char* with) {
     orig += len_front + len_rep;  // move to next "end of rep"
   } while ((ins = strstr(orig, rep)));
 
+  size_t len = strlen(orig) + 1;
   if (expand) {
-    strcpy(tmp, orig);
+    memcpy(tmp, orig, len);
   } else {
-    memmove(tmp, orig, strlen(orig) + 1);
+    memmove(tmp, orig, len);
   }
   return result;
 }

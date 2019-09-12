@@ -2,10 +2,10 @@
 
 const char* LOG_LEVELS[] = {"TRACE", "DEBUG", "INFO", "WARN", "ERROR", "FATAL"};
 
-static void (*senders[5])(int level, const char* json);
+static void (*senders[5])(int level, const char* json, int len);
 static int number_of_senders = 0;
 
-void logAddSender(void (*sender)(int level, const char* json)) {
+void logAddSender(void (*sender)(int level, const char* json, int len)) {
   senders[number_of_senders] = sender;
   number_of_senders++;
 }
@@ -62,10 +62,10 @@ void log_json(int level, const char* placeholder, ...) {
   for (int i = 0; i < number_of_senders; i++) {
     if (len < 0) {
       char error[64];
-      json(error, "i|len", len, "vbuild_json() failed in log_json()");
-      senders[i](LEVEL_ERROR, error);
+      len = json(error, "i|len", len, "vbuild_json() failed in log_json()");
+      senders[i](LEVEL_ERROR, error, len);
     }
-    senders[i](level, json);
+    senders[i](level, json, len);
   }
 }
 
@@ -85,16 +85,16 @@ const char* getLogId() {
   return "DEVICE UUID";
 }
 
-void send_console(int level, const char* json) {
+void send_console(int level, const char* json, int len) {
   char mod[LOG_MAX_LEN];
-  strcpy(mod, json);
+  memcpy(mod, json, len + 1);
 
   logModifyForHuman(level, mod);
 
   printf("terminal: %s\n", mod);
 }
 
-void send_file(int level, const char* json) {
+void send_file(int level, const char* json, int len) {
   if (level >= LEVEL_INFO) {
     printf("file    : %s\n", json);
   }

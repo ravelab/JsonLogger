@@ -31,7 +31,7 @@ extern const char* getLogTime();
 // define LOG_SOURCE_KEY (e.g. -D LOG_SOURCE_KEY="s") if you want to log source file, line # and function name
 //#define LOG_SOURCE_KEY "s"
 
-void logAddSender(void (*sender)(int level, const char* json));
+void logAddSender(void (*sender)(int level, const char* json, int len));
 void logModifyForHuman(int level, char* json);
 
 #ifdef __cplusplus

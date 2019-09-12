@@ -70,18 +70,18 @@ s[ i[ f#[ b[ o[
 ```c
 #include <JsonLogger.h>
 
-void to_console(int level, const char* json) {
+void to_console(int level, const char* json, int len) {
   char mod[LOG_MAX_LEN];
-  strcpy(mod, json);
+  memcpy(mod, json, len + 1);
 
   logModifyForHuman(level, mod);
 
   Serial.println(mod);
 }
 
-void to_mqtt(int level, const char* json) {
+void to_mqtt(int level, const char* json, len) {
   if (level >= LEVEL_WARN) {
-    send(json);
+    send(json, len);
   }
 }
 
