@@ -80,7 +80,7 @@ void to_console(int level, const char* json, int len) {
 }
 
 void to_mqtt(int level, const char* json, len) {
-  if (level >= LEVEL_WARN) {
+  if (level >= LEVEL_INFO) {
     send(json, len);
   }
 }
@@ -90,11 +90,30 @@ void to_mqtt(int level, const char* json, len) {
   logAddSender(to_mqtt);
 
   logTrace("should not be logged at all if LOG_MIN_LEVEL is not changed to 0");
-  logDebug("Debug");
-  logInfo("i|status", -1, "f5|pi", 3.14159, "Info");
+  logDebug("log to terminal, but not to mqtt");
+  logInfo("i|status", -1, "f5|pi", 3.14159, "log to both \"terminal\" and \"mqtt\"");
   logWarn("Warning");
   logError("Error");
   logFatal("Fatal");
+```
+output:
+```json
+terminal: {1970-01-01T00:00:00Z DEBUG src/Logger.c:109 main , _ : log to terminal, but not to mqtt }
+
+terminal: {1970-01-01T00:00:00Z INFO src/Logger.c:111 main , status :-1, pi :3.1416, _ : log to both 'terminal' and 'mqtt' }
+mqtt    : {"t":"1970-01-01T00:00:00Z","i":"DEVICE UUID","l":2,"s":"src/Logger.c:111","f":"main","status":-1,"pi":3.1416,"_":"log to both \"terminal\" and \"mqtt\""}
+
+terminal: {1970-01-01T00:00:00Z WARN src/Logger.c:113 main , _ : Warning }
+mqtt    : {"t":"1970-01-01T00:00:00Z","i":"DEVICE UUID","l":3,"s":"src/Logger.c:113","f":"main","_":"Warning"}
+
+terminal: {1970-01-01T00:00:00Z ERROR src/Logger.c:115 main , _ : Error }
+mqtt    : {"t":"1970-01-01T00:00:00Z","i":"DEVICE UUID","l":4,"s":"src/Logger.c:115","f":"main","_":"Error"}
+
+terminal: {1970-01-01T00:00:00Z FATAL src/Logger.c:117 main , _ : Fatal }
+mqtt    : {"t":"1970-01-01T00:00:00Z","i":"DEVICE UUID","l":5,"s":"src/Logger.c:117","f":"main","_":"Fatal"}
+
+terminal: {1970-01-01T00:00:00Z , l :8, src/Logger.c:119 main , _ : DATA }
+mqtt    : {"t":"1970-01-01T00:00:00Z","i":"DEVICE UUID","l":8,"s":"src/Logger.c:119","f":"main","_":"DATA"}
 
 ```
 

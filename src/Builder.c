@@ -235,7 +235,9 @@ int vbuild_json(char* json, size_t buf_size, const char* item, va_list arg) {
 
     if (firstItem) {
       if (isFragment || isEndObject) {
-        concat_const("{");
+        if (!buildFragment) {
+          concat_const("{");
+        }
       } else {
         if (buildFragment) {
           concat_const("\"");
@@ -516,6 +518,11 @@ int main() {
   len = json(buf64, "{|key", "+|", "}|");
   printf("%s\n", buf64);
   assert(!strcmp(buf64, "{\"key\":{}}"));
+  assert(len == strlen(buf64));
+
+  len = json(buf64, "-{", "+|\"k1\":\"v1\"", "k2", "v2");
+  printf("%s\n", buf64);
+  assert(!strcmp(buf64, "+|\"k1\":\"v1\",\"k2\":\"v2\""));
   assert(len == strlen(buf64));
 
   // error conditions

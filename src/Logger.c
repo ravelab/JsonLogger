@@ -96,7 +96,7 @@ void send_console(int level, const char* json, int len) {
 
 void send_file(int level, const char* json, int len) {
   if (level >= LEVEL_INFO) {
-    printf("file    : %s\n", json);
+    printf("mqtt    : %s\n", json);
   }
 }
 
@@ -106,9 +106,9 @@ int main() {
 
   logTrace("should not be logged at all if LOG_MIN_LEVEL is not changed to 0");
   printf("\n");
-  logDebug("log to terminal, but not to file");
+  logDebug("log to terminal, but not to mqtt");
   printf("\n");
-  logInfo("i|status", -1, "f5|pi", 3.14159, "log to both \"terminal\" and \"file\"");
+  logInfo("i|status", -1, "f5|pi", 3.14159, "log to both \"terminal\" and \"mqtt\"");
   printf("\n");
   logWarn("Warning");
   printf("\n");
