@@ -1,6 +1,6 @@
 {
   "name": "JsonLogger",
-  "version": "1.1.8",
+  "version": "1.1.9",
   "keywords": ["communication"],
   "description": "An easy-to-use, small, fast and portable JSON builder and logger for IoT logging, data acquisition and analytics",
   "frameworks": "*",
