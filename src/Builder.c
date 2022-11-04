@@ -68,7 +68,14 @@
     char* source6 = escaped6 ? escaped6 : source5;            \
     char* escaped7 = str_replace(source6, "\t", "\\t");       \
     char* source7 = escaped7 ? escaped7 : source6;            \
-    concat_var(source7);                                      \
+    int error = 0;                                            \
+    int src_size = strlen(source7) + 1;                       \
+    if (json_len + src_size > buf_size) {                     \
+      error = JSON_ERR_BUF_SIZE;                              \
+    } else {                                                  \
+      memcpy(&json[json_len], source7, src_size);             \
+      json_len += src_size - 1;                               \
+    }                                                         \
     if (escaped1) {                                           \
       free(escaped1);                                         \
     }                                                         \
@@ -89,6 +96,9 @@
     }                                                         \
     if (escaped7) {                                           \
       free(escaped7);                                         \
+    }                                                         \
+    if (error != 0) {                                         \
+      return error;                                           \
     }                                                         \
   } while (0)
 
